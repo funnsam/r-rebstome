@@ -1,5 +1,4 @@
-use std::io::{self, Read};
-use std::net::TcpStream;
+use std::io::{self, Read, Write};
 use super::client::State;
 
 #[derive(Debug, Clone)]
@@ -8,8 +7,7 @@ pub struct GenericPacket {
     pub data: Vec<u8>
 }
 
-impl PacketReader for TcpStream {}
-impl PacketReader for &[u8] {}
+impl<T: Read + Sized> PacketReader for T {}
 pub trait PacketReader where Self: Read + Sized {
     fn read_bytes(&mut self, size: usize) -> io::Result<Vec<u8>> {
         let mut buf = vec![0; size];
@@ -118,8 +116,39 @@ pub trait PacketReader where Self: Read + Sized {
     }
 }
 
-pub trait ServerPacket: std::fmt::Debug + Send {
+pub trait ServerPacket where Self: std::fmt::Debug + Send {
     fn handle(&self, client_idx: usize, server: &mut super::Server);
+}
+
+impl<T: Write + Sized> PacketWriter for T {}
+pub trait PacketWriter where Self: Write + Sized {
+    fn write_u8(&mut self, d: u8) -> io::Result<()> {
+        self.write_all(&[d])
+    }
+
+    fn write_u64(&mut self, d: u64) -> io::Result<()> {
+        self.write_all(&d.to_be_bytes())
+    }
+
+    fn write_varint(&mut self, mut d: i32) -> io::Result<()> {
+        loop {
+            if d & 0x80 == 0 {
+                return self.write_u8(d as u8);
+            }
+
+            self.write_u8(d as u8 | 0x80)?;
+            d >>= 7;
+        }
+    }
+
+    fn write_string(&mut self, d: &str) -> io::Result<()> {
+        self.write_varint(d.len() as i32)?;
+        self.write_all(d.as_bytes())
+    }
+}
+
+pub trait ClientPacket where Self: std::fmt::Debug + Send {
+    fn write<W: PacketWriter>(&self, w: &mut W) -> io::Result<()>;
 }
 
 pub mod handshake;

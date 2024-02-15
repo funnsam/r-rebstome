@@ -11,6 +11,21 @@ pub struct ServerClient {
     pub packets: mpsc::Receiver<Box<dyn packet::ServerPacket>>,
 }
 
+impl ServerClient {
+    pub fn send_packet(&mut self, packet: &impl packet::ClientPacket) -> std::io::Result<()> {
+        use std::io::Write;
+        let mut buf = Vec::new();
+        packet.write(&mut buf)?;
+        self.tcp.write_all(&buf)?;
+        self.tcp.flush()?;
+        info!("sent packet {:?}", packet);
+        for b in buf.iter() {
+            info!("{:02x}", b);
+        }
+        Ok(())
+    }
+}
+
 pub struct Server {
     pub new_clients: mpsc::Receiver<ServerClient>,
     pub old_clients: Vec<ServerClient>,
@@ -71,8 +86,8 @@ impl Server {
     }
 
     pub fn update_clients(&mut self) {
-        let client = self.new_clients.recv().unwrap();
-
-        self.old_clients.push(client);
+        if let Ok(client) = self.new_clients.try_recv() {
+            self.old_clients.push(client);
+        }
     }
 }
