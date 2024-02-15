@@ -120,35 +120,65 @@ pub trait ServerPacket where Self: std::fmt::Debug + Send {
     fn handle(&self, client_idx: usize, server: &mut super::Server);
 }
 
-impl<T: Write + Sized> PacketWriter for T {}
-pub trait PacketWriter where Self: Write + Sized {
-    fn write_u8(&mut self, d: u8) -> io::Result<()> {
-        self.write_all(&[d])
+pub struct PacketWriter {
+    buffer: Vec<u8>
+}
+
+impl PacketWriter {
+    pub fn new() -> Self {
+        Self {
+            buffer: Vec::new()
+        }
     }
 
-    fn write_u64(&mut self, d: u64) -> io::Result<()> {
-        self.write_all(&d.to_be_bytes())
+    pub fn write_u8(&mut self, d: u8) {
+        self.buffer.push(d)
     }
 
-    fn write_varint(&mut self, mut d: i32) -> io::Result<()> {
-        loop {
+    pub fn write_u64(&mut self, d: u64) {
+        self.buffer.extend(d.to_be_bytes())
+    }
+
+    pub fn write_varint(&mut self, mut d: i32) {
+        for _ in 1.. {
             if d & 0x80 == 0 {
-                return self.write_u8(d as u8);
+                self.write_u8(d as u8);
+                return;
             }
 
-            self.write_u8(d as u8 | 0x80)?;
+            self.write_u8(d as u8 | 0x80);
             d >>= 7;
         }
     }
 
-    fn write_string(&mut self, d: &str) -> io::Result<()> {
-        self.write_varint(d.len() as i32)?;
-        self.write_all(d.as_bytes())
+    pub fn write_string(&mut self, d: &str) {
+        self.write_varint(d.len() as i32);
+        self.buffer.extend(d.as_bytes());
+    }
+
+    pub fn export<W: Write>(&mut self, id: i32, w: &mut W) -> io::Result<()> {
+        fn write_varint<W: Write>(w: &mut W, mut d: i32) -> io::Result<usize> {
+            for i in 1.. {
+                if d & 0x80 == 0 {
+                    w.write_all(&[d as u8])?;
+                    return Ok(i);
+                }
+
+                w.write_all(&[d as u8 | 0x80])?;
+                d >>= 7;
+            }
+
+            unreachable!()
+        }
+
+        let len = write_varint(w, id)?;
+        write_varint(w, (self.buffer.len() + len) as i32)?;
+        w.write_all(&self.buffer)
     }
 }
 
 pub trait ClientPacket where Self: std::fmt::Debug + Send {
-    fn write<W: PacketWriter>(&self, w: &mut W) -> io::Result<()>;
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()>;
 }
 
 pub mod handshake;

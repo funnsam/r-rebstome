@@ -6,7 +6,7 @@ pub struct StatusRequestPacket {
 
 impl ServerPacket for StatusRequestPacket {
     fn handle(&self, client_idx: usize, server: &mut super::super::Server) {
-        let responce = format!(r#"{{"version":{{"name":"1.18.2","protocol":758}},"players":{{"max":1,"online":0}},"description":{{"text":{:?}}}}}"#, server.config.motd);
+        let responce = format!(r#"{{"version":{{"name":"1.18.2","protocol":758}},"players":{{"max":1,"online":0,"sample":[]}},"description":{{"text":{:?}}}}}"#, server.config.motd);
         server.old_clients[client_idx].send_packet(&StatusRespondPacket { responce }).unwrap();
     }
 }
@@ -45,9 +45,11 @@ pub struct StatusRespondPacket {
 }
 
 impl ClientPacket for StatusRespondPacket {
-    fn write<W: PacketWriter>(&self, w: &mut W) -> io::Result<()> {
-        w.write_varint(0x00)?;
-        w.write_string(&self.responce)
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        let mut p = PacketWriter::new();
+        p.write_string(&self.responce);
+
+        p.export(0x00, w)
     }
 }
 
@@ -57,8 +59,10 @@ pub struct PongPacket {
 }
 
 impl ClientPacket for PongPacket {
-    fn write<W: PacketWriter>(&self, w: &mut W) -> io::Result<()> {
-        w.write_varint(0x01)?;
-        w.write_u64(self.payload as u64)
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        let mut p = PacketWriter::new();
+        p.write_u64(self.payload as u64);
+
+        p.export(0x01, w)
     }
 }

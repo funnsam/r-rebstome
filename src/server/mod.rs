@@ -19,9 +19,6 @@ impl ServerClient {
         self.tcp.write_all(&buf)?;
         self.tcp.flush()?;
         info!("sent packet {:?}", packet);
-        for b in buf.iter() {
-            info!("{:02x}", b);
-        }
         Ok(())
     }
 }
