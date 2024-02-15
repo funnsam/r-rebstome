@@ -1,0 +1,6 @@
+motd = "Hello, world!"
+address = "127.0.0.1:65535"
+
+[game]
+
+[world]
