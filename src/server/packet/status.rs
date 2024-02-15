@@ -46,10 +46,10 @@ pub struct StatusRespondPacket {
 
 impl ClientPacket for StatusRespondPacket {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        let mut p = PacketWriter::new();
+        let mut p = PacketWriter::new(0x00);
         p.write_string(&self.responce);
 
-        p.export(0x00, w)
+        p.export(w)
     }
 }
 
@@ -60,9 +60,9 @@ pub struct PongPacket {
 
 impl ClientPacket for PongPacket {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        let mut p = PacketWriter::new();
+        let mut p = PacketWriter::new(0x01);
         p.write_u64(self.payload as u64);
 
-        p.export(0x01, w)
+        p.export(w)
     }
 }

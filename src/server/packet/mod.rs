@@ -121,12 +121,14 @@ pub trait ServerPacket where Self: std::fmt::Debug + Send {
 }
 
 pub struct PacketWriter {
+    typ: i32,
     buffer: Vec<u8>
 }
 
 impl PacketWriter {
-    pub fn new() -> Self {
+    pub fn new(typ: i32) -> Self {
         Self {
+            typ,
             buffer: Vec::new()
         }
     }
@@ -156,23 +158,23 @@ impl PacketWriter {
         self.buffer.extend(d.as_bytes());
     }
 
-    pub fn export<W: Write>(&mut self, id: i32, w: &mut W) -> io::Result<()> {
-        fn write_varint<W: Write>(w: &mut W, mut d: i32) -> io::Result<usize> {
-            for i in 1.. {
+    pub fn export<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
+        fn write_varint(mut d: i32) -> Vec<u8> {
+            let mut w = Vec::new();
+            loop {
                 if d & 0x80 == 0 {
-                    w.write_all(&[d as u8])?;
-                    return Ok(i);
+                    w.push(d as u8);
+                    return w;
                 }
 
-                w.write_all(&[d as u8 | 0x80])?;
+                w.push(d as u8 | 0x80);
                 d >>= 7;
             }
-
-            unreachable!()
         }
 
-        let len = write_varint(w, id)?;
-        write_varint(w, (self.buffer.len() + len) as i32)?;
+        let typ = write_varint(self.typ);
+        w.write_all(&write_varint((typ.len() + self.buffer.len()) as i32))?;
+        w.write_all(&typ)?;
         w.write_all(&self.buffer)
     }
 }

@@ -14,9 +14,7 @@ pub struct ServerClient {
 impl ServerClient {
     pub fn send_packet(&mut self, packet: &impl packet::ClientPacket) -> std::io::Result<()> {
         use std::io::Write;
-        let mut buf = Vec::new();
-        packet.write(&mut buf)?;
-        self.tcp.write_all(&buf)?;
+        packet.write(&mut self.tcp)?;
         self.tcp.flush()?;
         info!("sent packet {:?}", packet);
         Ok(())
