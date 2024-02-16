@@ -210,8 +210,8 @@ impl ClientPacket for JoinGamePacket {
         for d in self.dim_names.iter() {
             p.write_string(d);
         }
-        p.write_nbt_compound(&self.dim_codec, None, quartz_nbt::io::Flavor::Uncompressed);
-        p.write_nbt_compound(&self.dimension, None, quartz_nbt::io::Flavor::Uncompressed);
+        p.write_nbt_compound(&self.dim_codec, Some(""), quartz_nbt::io::Flavor::Uncompressed);
+        p.write_nbt_compound(&self.dimension, Some(""), quartz_nbt::io::Flavor::Uncompressed);
         p.write_string(&self.dim_current);
         p.write_be(self.seed_hash);
         p.write_varint(self.max_players);
