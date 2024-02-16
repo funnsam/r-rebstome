@@ -1,0 +1,51 @@
+{
+    "minecraft:dimension_type": {
+        type: "minecraft:dimension_type",
+        value: [
+            {
+                element: {
+                    coordinate_scale: 1D,
+                    piglin_safe: 0B,
+                    logical_height: 0,
+                    respawn_anchor_works: 0B,
+                    effects: "minecraft:overworld",
+                    ultrawarm: 0B,
+                    has_ceiling: 0B,
+                    infiniburn: "#minecraft:infiniburn_overworld",
+                    has_raids: 0B,
+                    natural: 1B,
+                    has_skylight: 1B,
+                    min_y: 0,
+                    height: 1,
+                    bed_works: 0B,
+                    ambient_light: 1F
+                },
+                id: 0,
+                name: "minecraft:overworld"
+            }
+        ]
+    },
+    "minecraft:worldgen/biome": {
+        value: [
+            {
+                element: {
+                    temperature: 0F,
+                    effects: {
+                        water_color: 8364543,
+                        water_fog_color: 8364543,
+                        fog_color: 8364543,
+                        sky_color: 8364543
+                    },
+                    scale: 0F,
+                    depth: 0F,
+                    category: ocean,
+                    precipitation: none,
+                    downfall: 0F
+                },
+                id: 0,
+                name: "minecraft:ocean"
+            }
+        ],
+        type: "minecraft:worldgen/biome"
+    }
+}

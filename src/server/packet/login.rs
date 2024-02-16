@@ -13,6 +13,58 @@ impl ServerPacket for LoginStartPacket {
             player_name: self.player_name.clone()
         }).unwrap();
 
+        info!("{}",  compound! {
+                "minecraft:dimension_type": compound! {
+                    "type": "minecraft:dimension_type",
+                    "value": NbtList::from(vec![
+                        compound! {
+                            "name": "minecraft:overworld",
+                            "id": 0_i32,
+                            "element": compound! {
+                                "piglin_safe": 0_i8,
+                                "natural": 1_i8,
+                                "ambient_light": 1.0_f32,
+                                "infiniburn": "#minecraft:infiniburn_overworld",
+                                "respawn_anchor_works": 0_i8,
+                                "has_skylight": 1_i8,
+                                "bed_works": 0_i8,
+                                "effects": "minecraft:overworld",
+                                "has_raids": 0_i8,
+                                "min_y": 0_i32,
+                                "height": 1_i32,
+                                "logical_height": 0_i32,
+                                "coordinate_scale": 1.0_f64,
+                                "ultrawarm": 0_i8,
+                                "has_ceiling": 0_i8,
+                            },
+                        }
+                    ]),
+                },
+                "minecraft:worldgen/biome": compound! {
+                    "type": "minecraft:worldgen/biome",
+                    "value": NbtList::from(vec![
+                        compound! {
+                            "name": "minecraft:ocean",
+                            "id": 0_i32,
+                            "element": compound! {
+                                "precipitation": "none",
+                                "depth": 0.0_f32,
+                                "temperature": 0.0_f32,
+                                "scale": 0.0_f32,
+                                "downfall": 0.0_f32,
+                                "category": "ocean",
+                                "effects": compound! {
+                                    "sky_color": 0x7fa1ff_i32,
+                                    "water_fog_color": 0x7fa1ff_i32,
+                                    "fog_color": 0x7fa1ff_i32,
+                                    "water_color": 0x7fa1ff_i32,
+                                }
+                            },
+                        },
+                    ]),
+                },
+            }.to_pretty_snbt());
+
         server.old_clients[client_idx].send_packet(&JoinGamePacket {
             eid: 0,
             hardcore: false,
@@ -25,23 +77,23 @@ impl ServerPacket for LoginStartPacket {
                     "value": NbtList::from(vec![
                         compound! {
                             "name": "minecraft:overworld",
-                            "id": 0,
+                            "id": 0_i32,
                             "element": compound! {
-                                "piglin_safe": 0_u8,
-                                "natural": 1_u8,
-                                "ambient_light": 1.0,
+                                "piglin_safe": 0_i8,
+                                "natural": 1_i8,
+                                "ambient_light": 1.0_f32,
                                 "infiniburn": "#minecraft:infiniburn_overworld",
-                                "respawn_anchor_works": 0_u8,
-                                "has_skylight": 1_u8,
-                                "bed_works": 0_u8,
+                                "respawn_anchor_works": 0_i8,
+                                "has_skylight": 1_i8,
+                                "bed_works": 0_i8,
                                 "effects": "minecraft:overworld",
-                                "has_raids": 0_u8,
-                                "min_y": 0,
-                                "height": 1,
-                                "logical_height": 0,
-                                "coordinate_scale": 1.0,
-                                "ultrawarm": 0_u8,
-                                "has_ceiling": 0_u8,
+                                "has_raids": 0_i8,
+                                "min_y": 0_i32,
+                                "height": 1_i32,
+                                "logical_height": 0_i32,
+                                "coordinate_scale": 1.0_f64,
+                                "ultrawarm": 0_i8,
+                                "has_ceiling": 0_i8,
                             },
                         }
                     ]),
@@ -51,19 +103,19 @@ impl ServerPacket for LoginStartPacket {
                     "value": NbtList::from(vec![
                         compound! {
                             "name": "minecraft:ocean",
-                            "id": 0,
+                            "id": 0_i32,
                             "element": compound! {
                                 "precipitation": "none",
-                                "depth": 0.0,
-                                "temperature": 0.0,
-                                "scale": 0.0,
-                                "downfall": 0.0,
+                                "depth": 0.0_f32,
+                                "temperature": 0.0_f32,
+                                "scale": 0.0_f32,
+                                "downfall": 0.0_f32,
                                 "category": "ocean",
                                 "effects": compound! {
-                                    "sky_color": 0x7fa1ff,
-                                    "water_fog_color": 0x7fa1ff,
-                                    "fog_color": 0x7fa1ff,
-                                    "water_color": 0x7fa1ff,
+                                    "sky_color": 0x7fa1ff_i32,
+                                    "water_fog_color": 0x7fa1ff_i32,
+                                    "fog_color": 0x7fa1ff_i32,
+                                    "water_color": 0x7fa1ff_i32,
                                 }
                             },
                         },
@@ -71,21 +123,21 @@ impl ServerPacket for LoginStartPacket {
                 },
             },
             dimension: compound! {
-                "piglin_safe": 0_u8,
-                "natural": 1_u8,
-                "ambient_light": 1.0,
-                "infiniburn": "#",
-                "respawn_anchor_works": 0_u8,
-                "has_skylight": 1_u8,
-                "bed_works": 0_u8,
+                "piglin_safe": 0_i8,
+                "natural": 1_i8,
+                "ambient_light": 1.0_f32,
+                "infiniburn": "#minecraft:infiniburn_overworld",
+                "respawn_anchor_works": 0_i8,
+                "has_skylight": 1_i8,
+                "bed_works": 0_i8,
                 "effects": "minecraft:overworld",
-                "has_raids": 0_u8,
-                "min_y": 0,
-                "height": 1,
-                "logical_height": 0,
-                "coordinate_scale": 1.0,
-                "ultrawarm": 0_u8,
-                "has_ceiling": 0_u8,
+                "has_raids": 0_i8,
+                "min_y": 0_i32,
+                "height": 1_i32,
+                "logical_height": 0_i32,
+                "coordinate_scale": 1.0_f64,
+                "ultrawarm": 0_i8,
+                "has_ceiling": 0_i8,
             },
             dim_current: "minecraft:ocean".to_string(),
             seed_hash: 0,
