@@ -17,7 +17,7 @@ impl HandshakePacket {
         let mut data = &packet.data[..];
         let proto = data.read_varint()?;
         let address = data.read_string()?;
-        let port = data.read_u16()?;
+        let port = data.read_be::<u16, 2>()?;
         let next = data.read_varint()?;
 
         Ok(Self { proto, address, port, next })

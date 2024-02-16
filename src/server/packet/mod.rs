@@ -1,5 +1,6 @@
 use std::io::{self, Read, Write};
 use super::client::State;
+use quartz_nbt as nbt;
 
 #[derive(Debug, Clone)]
 pub struct GenericPacket {
@@ -15,38 +16,8 @@ pub trait PacketReader where Self: Read + Sized {
         Ok(buf)
     }
 
-    fn read_u8(&mut self) -> io::Result<u8> {
-        let mut buf = [0];
-        self.read_exact(&mut buf)?;
-        Ok(buf[0])
-    }
-
-    fn read_i8(&mut self) -> io::Result<i8> {
-        Ok(self.read_u8()? as i8)
-    }
-
-    fn read_u16(&mut self) -> io::Result<u16> {
-        Ok(u16::from_be_bytes(self.read_bytes(2)?.try_into().unwrap()))
-    }
-
-    fn read_i16(&mut self) -> io::Result<i16> {
-        Ok(self.read_u16()? as i16)
-    }
-
-    fn read_u32(&mut self) -> io::Result<u32> {
-        Ok(u32::from_be_bytes(self.read_bytes(4)?.try_into().unwrap()))
-    }
-
-    fn read_i32(&mut self) -> io::Result<i32> {
-        Ok(self.read_u32()? as i32)
-    }
-
-    fn read_u64(&mut self) -> io::Result<u64> {
-        Ok(u64::from_be_bytes(self.read_bytes(8)?.try_into().unwrap()))
-    }
-
-    fn read_i64(&mut self) -> io::Result<i64> {
-        Ok(self.read_u64()? as i64)
+    fn read_be<T: BigEndianNumeric<S>, const S: usize>(&mut self) -> io::Result<T> {
+        Ok(T::_from_be_bytes(self.read_bytes(S)?.try_into().unwrap()))
     }
 
     #[inline(never)]
@@ -64,7 +35,7 @@ pub trait PacketReader where Self: Read + Sized {
         let mut result = 0i32;
         let mut size = 0;
         for i in 0.. {
-            let read = self.read_u8()?;
+            let read = self.read_be::<u8, 1>()?;
             result |= (read as i32 & 0x7f) << (i * 7);
             if i > 5 {
                 panic!("too big");
@@ -111,7 +82,14 @@ pub trait PacketReader where Self: Read + Sized {
             },
             State::Status if packet.typ == 0 => Ok(Box::new(StatusRequestPacket::new())),
             State::Status if packet.typ == 1 => Ok(Box::new(PingPacket::new(packet)?)),
-            _ => todo!("{state:?} {packet:?}"),
+            State::Login if packet.typ == 0 => {
+                *state = State::Login;
+                Ok(Box::new(LoginStartPacket::new(packet)?))
+            },
+            _ => {
+                warn!("unknown packet at state {:?} and content {:?}", state, packet);
+                Ok(Box::new(UnknownPacket))
+            },
         }
     }
 }
@@ -121,8 +99,8 @@ pub trait ServerPacket where Self: std::fmt::Debug + Send {
 }
 
 pub struct PacketWriter {
-    typ: i32,
-    buffer: Vec<u8>
+    pub typ: i32,
+    pub buffer: Vec<u8>
 }
 
 impl PacketWriter {
@@ -133,24 +111,30 @@ impl PacketWriter {
         }
     }
 
-    pub fn write_u8(&mut self, d: u8) {
-        self.buffer.push(d)
+    pub fn write_be<T: BigEndianNumeric<S>, const S: usize>(&mut self, d: T) {
+        self.buffer.extend(d._to_be_bytes())
     }
 
-    pub fn write_u64(&mut self, d: u64) {
-        self.buffer.extend(d.to_be_bytes())
-    }
-
-    pub fn write_varint(&mut self, mut d: i32) {
+    pub fn write_varint<T: Into<i32>>(&mut self, d: T) {
+        let mut d = d.into();
         for _ in 1.. {
             if d & 0x80 == 0 {
-                self.write_u8(d as u8);
+                self.write_be(d as u8);
                 return;
             }
 
-            self.write_u8(d as u8 | 0x80);
+            self.write_be(d as u8 | 0x80);
             d >>= 7;
         }
+    }
+
+    pub fn write_nbt_compound(
+        &mut self,
+        nbt: &nbt::NbtCompound,
+        name: Option<&str>,
+        flavor: nbt::io::Flavor
+    ) {
+        nbt::io::write_nbt(&mut self.buffer, name, nbt, flavor).unwrap();
     }
 
     pub fn write_string(&mut self, d: &str) {
@@ -179,6 +163,66 @@ impl PacketWriter {
     }
 }
 
+pub trait BigEndianNumeric<const S: usize> where Self: Copy + Sized {
+    fn _to_be_bytes(self) -> [u8; S];
+    fn _from_be_bytes(b: [u8; S]) -> Self;
+}
+
+impl BigEndianNumeric<1> for bool {
+    fn _to_be_bytes(self) -> [u8; 1] { (self as u8).to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 1]) -> Self { u8::from_be_bytes(b) != 0 }
+}
+
+impl BigEndianNumeric<1> for u8 {
+    fn _to_be_bytes(self) -> [u8; 1] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 1]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<2> for u16 {
+    fn _to_be_bytes(self) -> [u8; 2] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 2]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<4> for u32 {
+    fn _to_be_bytes(self) -> [u8; 4] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 4]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<8> for u64 {
+    fn _to_be_bytes(self) -> [u8; 8] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 8]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<16> for u128 {
+    fn _to_be_bytes(self) -> [u8; 16] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 16]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<1> for i8 {
+    fn _to_be_bytes(self) -> [u8; 1] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 1]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<2> for i16 {
+    fn _to_be_bytes(self) -> [u8; 2] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 2]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<4> for i32 {
+    fn _to_be_bytes(self) -> [u8; 4] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 4]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<8> for i64 {
+    fn _to_be_bytes(self) -> [u8; 8] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 8]) -> Self { Self::from_be_bytes(b) }
+}
+
+impl BigEndianNumeric<16> for i128 {
+    fn _to_be_bytes(self) -> [u8; 16] { self.to_be_bytes() }
+    fn _from_be_bytes(b: [u8; 16]) -> Self { Self::from_be_bytes(b) }
+}
+
 pub trait ClientPacket where Self: std::fmt::Debug + Send {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()>;
 }
@@ -187,3 +231,13 @@ pub mod handshake;
 use handshake::*;
 pub mod status;
 use status::*;
+pub mod login;
+use login::*;
+
+#[derive(Debug)]
+pub struct UnknownPacket;
+
+impl ServerPacket for UnknownPacket {
+    fn handle(&self, _client_idx: usize, _server: &mut super::Server) {
+    }
+}
